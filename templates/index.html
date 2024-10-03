@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
+      integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
+      crossorigin="anonymous"
+    ></script>
+    <title>Video Stream to Server</title>
+  </head>
+  <body>
+    <h1>Pong Cam</h1>
+    <p id="alert"></p>
+    <video id="videoElement" autoplay></video>
+    <button id="startStream">Start Stream</button>
+
+    <script>
+      const video = document.getElementById("videoElement");
+      const alert = document.getElementById("alert");
+      const startStreamButton = document.getElementById("startStream");
+
+      // Access the camera using getUserMedia
+      async function startCamera() {
+        alert.innerHTML = "Starting camera...";
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+          video.srcObject = stream;
+
+          // Open WebSocket connection to the Flask server
+          const socket = io();
+          socket.on("connect", () => {
+            console.log("connected");
+            alert.innerHTML = "Connected to server";
+          });
+
+          socket.on("disconnect", () => {
+            console.log("disconnected");
+            alert.innerHTML = "Disconnected from server";
+          });
+
+          socket.on("message", (data) => {
+            console.log("Message from server:", data);
+          });
+
+          // Capture frames and send to server via WebSocket
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          const sendFrame = () => {
+            if (socket.connected) {
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+              context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+              // Send the frame as a base64 string
+              const frameData = canvas.toDataURL("image/jpeg");
+              socket.emit('video_stream',frameData);
+            }
+          };
+
+          // Start sending frames every 16ms - 60fps
+          setInterval(sendFrame, 16);
+        } catch (err) {
+          console.error("Error accessing the camera:", err);
+          alert.innerHTML = err;
+        }
+      }
+
+      startStreamButton.addEventListener("click", startCamera);
+    </script>
+  </body>
+</html>
