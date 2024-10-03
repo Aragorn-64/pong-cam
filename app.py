@@ -3,6 +3,7 @@ from flask_socketio import SocketIO, emit
 import base64
 import numpy as np
 import cv2
+import datetime
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -33,9 +34,11 @@ def handle_video_stream(message):
 
 
 def save_frame(frame):
-    cv2.imwrite('output_image.jpg', frame)
+    curr = datetime.datetime.now()
+    cv2.imwrite(f'./frames/{curr}.jpg', frame)
 
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000,
-                 ssl_context=('cert.pem', 'key.pem'))
+    # socketio.run(app, host='0.0.0.0', port=5000,
+    #              ssl_context=('cert.pem', 'key.pem'))
+    socketio.run(app, host='0.0.0.0', port=5000)
